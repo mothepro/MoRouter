@@ -1,0 +1,20 @@
+{
+    "name": "mothepro/mo-router",
+    "description": "Generate slim routes through a configuration file",
+	"license": "MIT",
+    "authors": [
+        {
+            "name": "Maurice Prosper",
+            "email": "maurice.prosper@ttu.edu"
+        }
+    ],
+    "require": {
+        "nette/neon": "*",
+		"slim/slim": "2.*"
+    },
+	"autoload": {
+		"psr-0": {
+			"Mo": "src/"
+		}
+	}
+}

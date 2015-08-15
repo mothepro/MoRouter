@@ -1,0 +1,6 @@
+/nbproject/
+/vendor/
+composer.lock
+.gitattributes
+.sass-cache/
+.idea/
