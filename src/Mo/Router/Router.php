@@ -37,6 +37,10 @@ abstract class Router {
 	 */
 	protected static function getNeon($file) {
 		$file = realpath($file);
+		
+		if(empty($file) || !is_file($file))
+			throw new \Exception ('File not found');
+		
 		$data = file_get_contents($file);
 		$ret = \Nette\Neon\Neon::decode($data);
 
@@ -74,22 +78,22 @@ abstract class Router {
 				'callable',		// if set its a route
 				'alias',		// routes are the same [middleware and callable]
 				'dispatch',		// route dispatches another route
-			] as $name)
-				if(isset($tmp[$name])) {
-					$info[$name] = $tmp[$name];
-					unset($tmp[$name]);
+			] as $arg)
+				if(isset($tmp[$arg])) {
+					$info[$arg] = $tmp[$arg];
+					unset($tmp[$arg]);
 				}
-
+				
 			// make list of methods
 			if(isset($info['method'])) {
 				$info['methods'][] = $info['method'];
 				unset($info['method']);
 			}
 			
-			// a gorup
+			// a group
 			if(!isset($info['callable'])) {
 				// Name of group is route pattern
-				// if(empty($info['route']))
+				// if(!isset($tmp['route']))
 				//	$info['route'] = $name;
 				
 				// make a group
@@ -98,7 +102,7 @@ abstract class Router {
 					'middleware'	=> $info['middleware'],
 					'parent'		=> $group,
 				];
-				
+
 				// run on all children
 				static::create($tmp, $name);
 				
@@ -139,7 +143,7 @@ abstract class Router {
 			$before = array_merge(
 					self::getMiddlewares(
 						static::$groups[$group]['parent'],
-						static::$groups[$group]['pattern']
+						static::$groups[$group]['middleware']
 					),
 					$before
 				);
@@ -155,18 +159,18 @@ abstract class Router {
 		foreach(static::$routes as $name => $info) {
 			if(!isset($info['callable']) || !isset($info['route']))
 				throw new Exception ('Required route option missing in '. $name);
-			
+
 			// groups
 			$pattern = self::getPatterns($info['group'], $info['route']);
 			$middleware = self::getMiddlewares($info['group'], $info['middleware']);
-			
-			$route = new \Slim\Route;
-			$route->setPattern($pattern);
+
+			$route = new \Slim\Route($pattern, $info['callable']);
+//			$route->setPattern($pattern);
 			$route->setMiddleware($middleware);
-			$route->setCallable($info['callable']);
+//			$route->setCallable($info['callable']);
 			$route->setConditions($info['conditions']);
 			$route->appendHttpMethods($info['methods']);
-			$route->setName($info['name']);
+			$route->setName($name);
 			
 			static::$router->map($route);
 		}
