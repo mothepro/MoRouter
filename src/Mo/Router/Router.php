@@ -170,11 +170,7 @@ abstract class Router {
 			$info['middleware']	= self::getMiddlewares($info['group'], $info['middleware']);
 		} unset($info);
 		
-		/**
-		 * create aliases
-		 * 
-		 * @todo support for alias to alias
-		 */
+		// create aliases from names
 		do {
 			$alias2alias = false;
 			foreach(static::$info as $name => $info) {
@@ -190,7 +186,26 @@ abstract class Router {
 				}
 				
 				// $info overwrites alias
+				$info['middleware'] = array_unique(array_merge($myAlias['middleware'], $info['middleware']));
 				static::$info[$name] = array_merge($myAlias, $info);
+			}
+		} while($alias2alias);
+		
+		// create dispatches fron names
+		do {
+			$alias2alias = false;
+			foreach(static::$info as $name => $info) {
+				if(!isset($info['dispatch']))
+					continue;
+				
+				$myAlias = static::$info[ $info['dispatch'] ];
+				
+				// does my alias, have an alias?
+				if(isset($myAlias['dispatch'])) {
+					$alias2alias = true;
+					static::$info[$name]['dispatch'] = $myAlias['dispatch'];
+				} else
+					static::$info[$name]['callable'] = $myAlias['callable'];
 			}
 		} while($alias2alias);
 		
@@ -203,9 +218,15 @@ abstract class Router {
 //			$route->setPattern($pattern);
 //			$route->setCallable($info['callable']);
 			
-			$route->setMiddleware($info['middleware']);
-			$route->setConditions($info['conditions']);
-			$route->appendHttpMethods($info['methods']);
+			if(!empty($info['middleware']))
+				$route->setMiddleware($info['middleware']);
+			
+			if(isset($info['conditions']))
+				$route->setConditions($info['conditions']);
+			
+			if(isset($info['methods']))
+				$route->appendHttpMethods($info['methods']);
+			
 			$route->setName($name);
 			
 			static::$routes[ $name ] = $route;
