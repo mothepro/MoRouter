@@ -170,6 +170,29 @@ abstract class Router {
 			$info['middleware']	= self::getMiddlewares($info['group'], $info['middleware']);
 		} unset($info);
 		
+		/**
+		 * create aliases
+		 * 
+		 * @todo support for alias to alias
+		 */
+		do {
+			$alias2alias = false;
+			foreach(static::$info as $name => $info) {
+				if(!isset($info['alias']))
+					continue;
+				
+				$myAlias = static::$info[ $info['alias'] ];
+				
+				// does my alias, have an alias?
+				if(isset($myAlias['alias'])) {
+					$alias2alias = true;
+					unset($info['alias']);
+				}
+				
+				// $info overwrites alias
+				static::$info[$name] = array_merge($myAlias, $info);
+			}
+		} while($alias2alias);
 		
 		// create routes with callable
 		foreach(static::$info as $name => $info) {
@@ -205,5 +228,8 @@ abstract class Router {
 		// add routes to router
 		foreach(static::$routes as $route)
 			static::$router->map($route);
+		
+		// check for alias
+		
 	}
 }
