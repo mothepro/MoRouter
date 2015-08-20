@@ -4,6 +4,7 @@ namespace Mo\Router;
 
 /**
  * Generates Slim routes from a NEON file containing routes & groups
+ * @todo cache router
  * 
  * Format
  * Group Name:
@@ -22,13 +23,18 @@ abstract class Router {
 	 * Route info and group
 	 * @var string[][]
 	 */
-	private static $routes;
+	private static $info;
 	
 	/**
 	 * Group names and patterns
 	 * @var array
 	 */
 	private static $groups;
+	
+	/**
+	 * @var \Slim\Route[]
+	 */
+	private static $routes;
 
 	/**
 	 * Get NEON file
@@ -63,14 +69,14 @@ abstract class Router {
 			$info = [
 				'route'			=> '',
 				'middleware'	=> [],
-				'methods'		=> [],
 			];
 			
 			// extract route info
 			foreach([
 				'route',		// path
-				
 				'middleware',	// Route / Group Middleware
+				
+				// route specific
 				'conditions',	// parameter conditions
 				'defaults',		// parameter defaults
 				'methods',		// HTTP methods
@@ -85,13 +91,15 @@ abstract class Router {
 				}
 				
 			// make list of methods
-			if(isset($info['method'])) {
-				$info['methods'][] = $info['method'];
-				unset($info['method']);
+			if(isset($tmp['method'])) {
+				if(isset($info['methods']) && is_array($info['methods']))
+					$info['methods'][] = $tmp['method'];
+				else
+					$info['methods'] = array($tmp['method']);		
 			}
 			
 			// a group
-			if(!isset($info['callable'])) {
+			if(array_keys($info) === ['route', 'middleware']) {
 				// Name of group is route pattern
 				// if(!isset($tmp['route']))
 				//	$info['route'] = $name;
@@ -109,7 +117,7 @@ abstract class Router {
 			// just a route
 			} else {
 				$info['group'] = $group;
-				static::$routes[ $name ] = $info;
+				static::$info[ $name ] = $info;
 			}
 		}
 	}
@@ -156,23 +164,29 @@ abstract class Router {
 	 * Adds them to the router
 	 */
 	protected static function process() {
-		foreach(static::$routes as $name => $info) {
-			if(!isset($info['callable']) || !isset($info['route']))
-				throw new Exception ('Required route option missing in '. $name);
-
-			// groups
-			$pattern = self::getPatterns($info['group'], $info['route']);
-			$middleware = self::getMiddlewares($info['group'], $info['middleware']);
-
-			$route = new \Slim\Route($pattern, $info['callable']);
+		// fix info from groups
+		foreach(static::$info as &$info) {
+			$info['pattern']	= self::getPatterns($info['group'], $info['route']);
+			$info['middleware']	= self::getMiddlewares($info['group'], $info['middleware']);
+		} unset($info);
+		
+		
+		// create routes with callable
+		foreach(static::$info as $name => $info) {
+			if(!isset($info['callable']))
+				continue;
+			
+			$route = new \Slim\Route($info['pattern'], $info['callable']);
 //			$route->setPattern($pattern);
-			$route->setMiddleware($middleware);
 //			$route->setCallable($info['callable']);
+			
+			$route->setMiddleware($info['middleware']);
 			$route->setConditions($info['conditions']);
 			$route->appendHttpMethods($info['methods']);
 			$route->setName($name);
 			
-			static::$router->map($route);
+			static::$routes[ $name ] = $route;
+			unset(static::$info[$name]);
 		}
 	}
 
@@ -187,5 +201,9 @@ abstract class Router {
 		
 		static::create($data);
 		static::process();
+		
+		// add routes to router
+		foreach(static::$routes as $route)
+			static::$router->map($route);
 	}
 }
