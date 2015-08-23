@@ -16,5 +16,8 @@
 		"psr-0": {
 			"Mo": "src/"
 		}
-	}
+	},
+	"bin": [
+		"bin/build_routes.php"
+	]
 }
