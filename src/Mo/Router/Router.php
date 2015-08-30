@@ -208,7 +208,9 @@ abstract class Router {
 					static::$info[$name]['callable'] = $myAlias['callable'];
 			}
 		} while($alias2alias);
-		
+	}
+	
+	protected static function makeSlimRoutes() {
 		// create routes with callable
 		foreach(static::$info as $name => $info) {
 			if(!isset($info['callable']))
@@ -232,6 +234,20 @@ abstract class Router {
 			static::$routes[ $name ] = $route;
 			unset(static::$info[$name]);
 		}
+		
+		// add routes to router
+		foreach(static::$routes as $route)
+			static::$router->map($route);
+	}
+	
+	
+	/**
+	 * Checks aliases and dispatches for URI instead of names
+	 */
+	public static function byURI() {
+//		foreach(static::$info as $name => $info) {
+//			static::$router->getMatchedRoutes($httpMethod, $resourceUri);
+//		}
 	}
 
 	public static function generate(\Slim\Router $router, $file) {
@@ -245,12 +261,8 @@ abstract class Router {
 		
 		static::create($data);
 		static::process();
+		static::byURI();
 		
-		// add routes to router
-		foreach(static::$routes as $route)
-			static::$router->map($route);
-		
-		// check for alias
-		
+		static::makeSlimRoutes();
 	}
 }
