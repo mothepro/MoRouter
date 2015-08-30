@@ -18,6 +18,6 @@
 		}
 	},
 	"bin": [
-		"bin/build_routes.php"
+		"bin/build_routes"
 	]
 }
