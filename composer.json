@@ -13,8 +13,8 @@
 		"slim/slim": "2.*"
     },
 	"autoload": {
-		"psr-0": {
-			"Mo": "src/"
+		"psr-4": {
+			"Mo\\Router\\": "src/"
 		}
 	},
 	"bin": [
