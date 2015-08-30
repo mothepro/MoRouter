@@ -187,7 +187,7 @@ abstract class Router {
 				}
 				
 				// $info overwrites alias
-				$info['middleware'] = array_unique(array_merge($myAlias['middleware'], $info['middleware']));
+				$info['middleware'] = array_unique(array_merge($myAlias['middleware'], $info['middleware']), SORT_REGULAR);
 				static::$info[$name] = array_merge($myAlias, $info);
 			}
 		} while($alias2alias);
