@@ -78,7 +78,6 @@ abstract class Router {
 				
 				// route specific
 				'conditions',	// parameter conditions
-				'defaults',		// parameter defaults
 				'methods',		// HTTP methods
 				
 				'callable',		// if set its a route
@@ -95,14 +94,15 @@ abstract class Router {
 				if(isset($info['methods']) && is_array($info['methods']))
 					$info['methods'][] = $tmp['method'];
 				else
-					$info['methods'] = array($tmp['method']);		
+					$info['methods'] = array($tmp['method']);
+				unset($tmp['method']);
 			}
 			
 			// a group
-			if(array_keys($info) === ['route', 'middleware']) {
-				// Name of group is route pattern
-				// if(!isset($tmp['route']))
-				//	$info['route'] = $name;
+			if(!empty($tmp)) {
+				// Name of group is route pattern, if no route given
+//				if(!isset($info['route']))
+//					$info['route'] = $name;
 				
 				// make a group
 				static::$groups[ $name ] = [
@@ -113,9 +113,10 @@ abstract class Router {
 
 				// run on all children
 				static::create($tmp, $name);
-				
-			// just a route
-			} else {
+			}
+			
+			// this is a route
+			if(isset($info['callable']) || isset($info['alias']) || isset($info['dispatch'])) {
 				$info['group'] = $group;
 				static::$info[ $name ] = $info;
 			}
