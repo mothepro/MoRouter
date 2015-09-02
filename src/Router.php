@@ -171,7 +171,36 @@ abstract class Router {
 			$info['middleware']	= self::getMiddlewares($info['group'], $info['middleware']);
 		} unset($info);
 		
-		// create aliases from names
+		static::makeAlias();
+		static::makeDispatches();
+	}
+	
+	/**
+	 * create dispatches fron names
+	 */
+	protected static function makeDispatches() {
+		do {
+			$alias2alias = false;
+			foreach(static::$info as $name => $info) {
+				if(!isset($info['dispatch']))
+					continue;
+				
+				$myAlias = static::$info[ $info['dispatch'] ];
+				
+				// does my alias, have an alias?
+				if(isset($myAlias['dispatch'])) {
+					$alias2alias = true;
+					static::$info[$name]['dispatch'] = $myAlias['dispatch'];
+				} else
+					static::$info[$name]['callable'] = $myAlias['callable'];
+			}
+		} while($alias2alias);
+	}
+
+	/**
+	 * create aliases from names
+	 */
+	protected static function makeAlias() {
 		do {
 			$alias2alias = false;
 			foreach(static::$info as $name => $info) {
@@ -191,26 +220,8 @@ abstract class Router {
 				static::$info[$name] = array_merge($myAlias, $info);
 			}
 		} while($alias2alias);
-		
-		// create dispatches fron names
-		do {
-			$alias2alias = false;
-			foreach(static::$info as $name => $info) {
-				if(!isset($info['dispatch']))
-					continue;
-				
-				$myAlias = static::$info[ $info['dispatch'] ];
-				
-				// does my alias, have an alias?
-				if(isset($myAlias['dispatch'])) {
-					$alias2alias = true;
-					static::$info[$name]['dispatch'] = $myAlias['dispatch'];
-				} else
-					static::$info[$name]['callable'] = $myAlias['callable'];
-			}
-		} while($alias2alias);
 	}
-	
+
 	protected static function makeSlimRoutes() {
 		// create routes with callable
 		foreach(static::$info as $name => $info) {
