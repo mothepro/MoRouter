@@ -221,8 +221,32 @@ abstract class Router {
 			}
 		} while($alias2alias);
 	}
+	
+	/**
+	 * Checks aliases and dispatches for URI instead of names
+	 */
+	public static function byURI() {
+//		foreach(static::$info as $name => $info) {
+//			static::$router->getMatchedRoutes($httpMethod, $resourceUri);
+//		}
+	}
 
-	protected static function makeSlimRoutes() {
+	protected static function generate($file) {
+		$data = static::getNeon($file);
+		
+		static::create($data);
+		static::process();
+		static::byURI();
+		
+		return $data;
+	}
+	
+	public static function generateSlim(\Slim\Router $router, $file) {
+		$data = static::generate($file);
+		
+		if(isset($data['conditions']))
+			\Slim\Route::setDefaultConditions($data['conditions']);
+
 		// create routes with callable
 		foreach(static::$info as $name => $info) {
 			if(!isset($info['callable']))
@@ -250,31 +274,5 @@ abstract class Router {
 		// add routes to router
 		foreach(static::$routes as $route)
 			static::$router->map($route);
-	}
-	
-	
-	/**
-	 * Checks aliases and dispatches for URI instead of names
-	 */
-	public static function byURI() {
-//		foreach(static::$info as $name => $info) {
-//			static::$router->getMatchedRoutes($httpMethod, $resourceUri);
-//		}
-	}
-
-	public static function generate(\Slim\Router $router, $file) {
-		$data = static::getNeon($file);
-		static::$router = $router;
-		
-		if(isset($data['conditions'])) {
-			\Slim\Route::setDefaultConditions($data['conditions']);
-			unset($data['conditions']);
-		}
-		
-		static::create($data);
-		static::process();
-		static::byURI();
-		
-		static::makeSlimRoutes();
 	}
 }
