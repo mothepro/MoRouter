@@ -32,11 +32,6 @@ abstract class Router {
 	private static $groups;
 	
 	/**
-	 * @var \Slim\Route[]
-	 */
-	private static $routes;
-
-	/**
 	 * Get NEON file
 	 * @param string $file
 	 * @return mixed[]
@@ -79,6 +74,7 @@ abstract class Router {
 				// route specific
 				'conditions',	// parameter conditions
 				'methods',		// HTTP methods
+				'params',		// parameters
 				
 				'callable',		// if set its a route
 				'alias',		// routes are the same [middleware and callable]
@@ -223,13 +219,36 @@ abstract class Router {
 	}
 	
 	/**
-	 * Checks aliases and dispatches for URI instead of names
+	 * Finds a specific route
+	 * @param string $path what to search for
+	 * @param string $method type of route
+	 * @return array|null
 	 */
-	public static function byURI() {
-//		foreach(static::$info as $name => $info) {
-//			static::$router->getMatchedRoutes($httpMethod, $resourceUri);
-//		}
-	}
+//	private static function searchBy($path, $method = 'GET') {
+//		$ret = null;
+//		
+//		// match by name
+//		if(!isset(static::$info[ $path ]))
+//			$ret = static::$info[$path];
+//		
+//		else foreach (static::$info as $info) {
+//				if(!in_array($method, $info['methods']))
+//					continue;
+//				
+//				// match if it the same pattern
+//				if($info['route'] === $path)
+//					$ret = $info;
+//				
+//				// match by pattern
+//				elseif(preg_match($path, $info['route']))
+//					$ret = $info;
+//				
+//				if(isset($ret))
+//					break;
+//			}
+//		var_dump($ret);
+//		return $ret;
+//	}
 
 	protected static function generate($file) {
 		$data = static::getNeon($file);
@@ -253,8 +272,11 @@ abstract class Router {
 				continue;
 			
 			$route = new \Slim\Route($info['pattern'], $info['callable']);
-//			$route->setPattern($pattern);
+//			$route->setPattern($info['pattern']);
 //			$route->setCallable($info['callable']);
+			
+			if(!empty($info['params']))
+				$route->setParams($info['params']);
 			
 			if(!empty($info['middleware']))
 				$route->setMiddleware($info['middleware']);
@@ -267,12 +289,12 @@ abstract class Router {
 			
 			$route->setName($name);
 			
-			static::$routes[ $name ] = $route;
+			$routes[ $name ] = $route;
 			unset(static::$info[$name]);
 		}
 		
 		// add routes to router
-		foreach(static::$routes as $route)
-			static::$router->map($route);
+		foreach($routes as $route)
+			$router->map($route);
 	}
 }
