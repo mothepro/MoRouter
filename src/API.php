@@ -6,7 +6,7 @@ namespace Mo\Router;
  *
  * @author Maurice Prosper <maurice.prosper@ttu.edu>
  */
-abstract class Middleware {
+abstract class API {
 	/**
 	 * Allow JSONP callback
 	 * @var string
