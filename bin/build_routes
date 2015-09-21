@@ -1,3 +1,16 @@
 #!/usr/bin/env php
 <?php
-include 'build_routes.php';
+require 'vendor/autoload.php';
+
+/**
+ * Saves router in file
+ * 
+ * build_routes.php type input output
+ * 
+ * In application:
+ * $slim->router = unserialize(output);
+ */
+$ret = Mo\Router\Router::generate($argv[2], $argv[1]);
+
+if(!empty($ret))
+	file_put_contents($argv[3],	serialize($ret));
