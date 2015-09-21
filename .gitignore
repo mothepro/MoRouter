@@ -4,3 +4,4 @@ composer.lock
 .gitattributes
 .sass-cache/
 .idea/
+tests/
