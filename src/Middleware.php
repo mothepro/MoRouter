@@ -18,6 +18,18 @@ abstract class Middleware {
 	 * @var boolean
 	 */
 	public static $protected = false;
+	
+	/**
+	 * Show HTTP status
+	 * @var boolean
+	 */
+	public static $status = true;
+	
+	/**
+	 * Show slash data
+	 * @var boolean
+	 */
+	public static $flash = false;
 
 	/**
 	 * We are going to run the API command,
@@ -40,15 +52,25 @@ abstract class Middleware {
 			}
 			
 			// JSONP
-			static::$callback	= $app->request->get('callback', static::$callback);	
-//			static::$protected	= $app->request->get('protected', static::$protected);	
-
-			// headers
-			$ret['status'] = $app->response->getStatus();
-			$app->response->headers->set('Content-Type', 'application/json');
+			static::$callback	= $app->request->get('callback', static::$callback);
 			
 			// template
-			if(count($ret) > 1) {
+			if($ret) {
+				// headers
+				$app->response->headers->set('Content-Type', 'application/json');
+				
+				// status
+				if(static::$status)
+					$ret['status'] = $app->response->getStatus();
+				
+				// flash
+				if(static::$flash) {
+					$ret['flash'] = $app->flashData();
+					if(empty($ret['flash']))
+						unset($ret['flash']);
+				}
+			
+				// data
 				$echo = json_encode($ret);
 
 				if(static::$callback)
@@ -59,7 +81,8 @@ abstract class Middleware {
 //					$echo = json_encode($ret);
 
 				$app->response->setBody($echo);
-			}
+			} else
+				$app->response->setStatus(204);
 		});
 	}
 }
