@@ -15,11 +15,6 @@ namespace Mo\Router;
  */
 abstract class Router {
 	/**
-	 * @var \Slim\Router
-	 */
-	protected static $router;
-	
-	/**
 	 * Route info and group
 	 * @var string[][]
 	 */
@@ -60,63 +55,64 @@ abstract class Router {
 	 * @param mixed[] $data
 	 */
 	protected static function create($data, $group = null) {
-		foreach($data as $name => $tmp) {
-			$info = [
-				'route'			=> '',
-				'middleware'	=> [],
-			];
-			
-			// extract route info
-			foreach([
-				'route',		// path
-				'middleware',	// Route / Group Middleware
-				
-				// route specific
-				'conditions',	// parameter conditions
-				'methods',		// HTTP methods
-				'params',		// parameters
-				
-				'callable',		// if set its a route
-				'alias',		// routes are the same [middleware and callable]
-				'dispatch',		// route dispatches another route
-			] as $arg)
-				if(isset($tmp[$arg])) {
-					$info[$arg] = $tmp[$arg];
-					unset($tmp[$arg]);
-				}
-				
-			// make list of methods
-			if(isset($tmp['method'])) {
-				if(isset($info['methods']) && is_array($info['methods']))
-					$info['methods'][] = $tmp['method'];
-				else
-					$info['methods'] = array($tmp['method']);
-				unset($tmp['method']);
-			}
-			
-			// a group
-			if(!empty($tmp)) {
-				// Name of group is route pattern, if no route given
-//				if(!isset($info['route']))
-//					$info['route'] = $name;
-				
-				// make a group
-				static::$groups[ $name ] = [
-					'pattern'		=> $info['route'],
-					'middleware'	=> $info['middleware'],
-					'parent'		=> $group,
+		if(is_array($data))
+			foreach($data as $name => $tmp) {
+				$info = [
+					'route'			=> '',
+					'middleware'	=> [],
 				];
 
-				// run on all children
-				static::create($tmp, $name);
+				// extract route info
+				foreach([
+					'route',		// path
+					'middleware',	// Route / Group Middleware
+
+					// route specific
+					'conditions',	// parameter conditions
+					'methods',		// HTTP methods
+					'params',		// parameters
+
+					'callable',		// if set its a route
+					'alias',		// routes are the same [middleware and callable]
+					'dispatch',		// route dispatches another route
+				] as $arg)
+					if(isset($tmp[$arg])) {
+						$info[$arg] = $tmp[$arg];
+						unset($tmp[$arg]);
+					}
+
+				// make list of methods
+				if(isset($tmp['method'])) {
+					if(isset($info['methods']) && is_array($info['methods']))
+						$info['methods'][] = $tmp['method'];
+					else
+						$info['methods'] = array($tmp['method']);
+					unset($tmp['method']);
+				}
+
+				// a group
+				if(!empty($tmp)) {
+					// Name of group is route pattern, if no route given
+	//				if(!isset($info['route']))
+	//					$info['route'] = $name;
+
+					// make a group
+					static::$groups[ $name ] = [
+						'pattern'		=> $info['route'],
+						'middleware'	=> $info['middleware'],
+						'parent'		=> $group,
+					];
+
+					// run on all children
+					static::create($tmp, $name);
+				}
+
+				// this is a route
+				if(isset($info['callable']) || isset($info['alias']) || isset($info['dispatch'])) {
+					$info['group'] = $group;
+					static::$info[ $name ] = $info;
+				}
 			}
-			
-			// this is a route
-			if(isset($info['callable']) || isset($info['alias']) || isset($info['dispatch'])) {
-				$info['group'] = $group;
-				static::$info[ $name ] = $info;
-			}
-		}
 	}
 	
 	/**
@@ -203,65 +199,50 @@ abstract class Router {
 				if(!isset($info['alias']))
 					continue;
 				
-				$myAlias = static::$info[ $info['alias'] ];
+				if(!isset(static::$info[ $info['alias'] ]))
+					continue;
 				
+				$myAlias = static::$info[ $info['alias'] ];
+
 				// does my alias, have an alias?
 				if(isset($myAlias['alias'])) {
 					$alias2alias = true;
 					unset($info['alias']);
 				}
-				
+
 				// $info overwrites alias
 				$info['middleware'] = array_unique(array_merge($myAlias['middleware'], $info['middleware']), SORT_REGULAR);
 				static::$info[$name] = array_merge($myAlias, $info);
 			}
 		} while($alias2alias);
 	}
-	
-	/**
-	 * Finds a specific route
-	 * @param string $path what to search for
-	 * @param string $method type of route
-	 * @return array|null
-	 */
-//	private static function searchBy($path, $method = 'GET') {
-//		$ret = null;
-//		
-//		// match by name
-//		if(!isset(static::$info[ $path ]))
-//			$ret = static::$info[$path];
-//		
-//		else foreach (static::$info as $info) {
-//				if(!in_array($method, $info['methods']))
-//					continue;
-//				
-//				// match if it the same pattern
-//				if($info['route'] === $path)
-//					$ret = $info;
-//				
-//				// match by pattern
-//				elseif(preg_match($path, $info['route']))
-//					$ret = $info;
-//				
-//				if(isset($ret))
-//					break;
-//			}
-//		var_dump($ret);
-//		return $ret;
-//	}
 
-	protected static function generate($file) {
+	/**
+	 * Creates a router object with the routes defined from
+	 * a file
+	 * @param string $type
+	 * @param string $file
+	 * @return mixed
+	 */
+	public static function generate($file, $type = 'slim') {
 		$data = static::getNeon($file);
-		
+
 		static::create($data);
 		static::process();
-		static::byURI();
 		
-		return $data;
+		switch($type) {
+			case 'slim':
+			default:
+				return static::generateSlim($data);
+		}
 	}
 	
-	public static function generateSlim(\Slim\Router $router, $file) {
-		$data = static::generate($file);
+	/**
+	 * Creates a slim router
+	 * @param mixed $data
+	 */
+	protected static function generateSlim($data) {
+		$router = new \Slim\Router;
 		
 		if(isset($data['conditions']))
 			\Slim\Route::setDefaultConditions($data['conditions']);
@@ -271,7 +252,7 @@ abstract class Router {
 			if(!isset($info['callable']))
 				continue;
 			
-			$route = new \Slim\Route($info['pattern'], $info['callable']);
+			$route = new SlimRoute($info['pattern'], $info['callable']);
 //			$route->setPattern($info['pattern']);
 //			$route->setCallable($info['callable']);
 			
@@ -296,5 +277,7 @@ abstract class Router {
 		// add routes to router
 		foreach($routes as $route)
 			$router->map($route);
+		
+		return $router;
 	}
 }
