@@ -23,7 +23,7 @@ abstract class API {
 	 * Show HTTP status
 	 * @var boolean
 	 */
-	public static $status = true;
+	public static $status = false;
 	
 	/**
 	 * Show slash data
